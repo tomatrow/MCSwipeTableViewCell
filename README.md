@@ -31,9 +31,7 @@ Please refer to the header file [`MCSwipeTableViewCell.h`](MCSwipeTableViewCell/
         cell = [[MCSwipeTableViewCell alloc] initWithStyle:UITableViewCellStyleSubtitle reuseIdentifier:CellIdentifier];
         
         // Remove inset of iOS 7 separators.
-        if ([cell respondsToSelector:@selector(setSeparatorInset:)]) {
-            cell.separatorInset = UIEdgeInsetsZero;
-        }
+        cell.separatorInset = UIEdgeInsetsZero;
         
         [cell setSelectionStyle:UITableViewCellSelectionStyleGray];
 
@@ -60,22 +58,19 @@ Please refer to the header file [`MCSwipeTableViewCell.h`](MCSwipeTableViewCell/
     [cell.textLabel setText:@"Switch Mode Cell"];
     [cell.detailTextLabel setText:@"Swipe to switch"];
     
-    // Adding gestures per state basis.
-    [cell setSwipeGestureWithView:checkView color:greenColor mode:MCSwipeTableViewCellModeSwitch state:MCSwipeTableViewCellState1 completionBlock:^(MCSwipeTableViewCell *cell, MCSwipeTableViewCellState state, MCSwipeTableViewCellMode mode) {
-        NSLog(@"Did swipe \"Checkmark\" cell");
-    }];
-    
-    [cell setSwipeGestureWithView:crossView color:redColor mode:MCSwipeTableViewCellModeSwitch state:MCSwipeTableViewCellState2 completionBlock:^(MCSwipeTableViewCell *cell, MCSwipeTableViewCellState state, MCSwipeTableViewCellMode mode) {
-        NSLog(@"Did swipe \"Cross\" cell");
-    }];
-    
-    [cell setSwipeGestureWithView:clockView color:yellowColor mode:MCSwipeTableViewCellModeSwitch state:MCSwipeTableViewCellState3 completionBlock:^(MCSwipeTableViewCell *cell, MCSwipeTableViewCellState state, MCSwipeTableViewCellMode mode) {
-        NSLog(@"Did swipe \"Clock\" cell");
-    }];
-    
-    [cell setSwipeGestureWithView:listView color:brownColor mode:MCSwipeTableViewCellModeSwitch state:MCSwipeTableViewCellState4 completionBlock:^(MCSwipeTableViewCell *cell, MCSwipeTableViewCellState state, MCSwipeTableViewCellMode mode) {
-        NSLog(@"Did swipe \"List\" cell");
-    }];
+  
+        cell.farLeftSection = [[MCSwipeSection alloc] initWithView:checkView color:greenColor mode:MCSwipeTableViewCellModeSwitch trigger:0.25f completionBlock:^(MCSwipeTableViewCell *cell, MCSwipeSection *section) {
+            NSLog(@"Did swipe \"Checkmark\" cell");
+        }];
+        cell.midLeftSection = [[MCSwipeSection alloc] initWithView:crossView color:redColor mode:MCSwipeTableViewCellModeSwitch trigger:0.75f completionBlock:^(MCSwipeTableViewCell *cell, MCSwipeSection *section) {
+            NSLog(@"Did swipe \"Cross\" cell");
+        }];
+        cell.farRightSection = [[MCSwipeSection alloc] initWithView:clockView color:yellowColor mode:MCSwipeTableViewCellModeSwitch trigger:-0.25f completionBlock:^(MCSwipeTableViewCell *cell, MCSwipeSection *section) {
+            NSLog(@"Did swipe \"Clock\" cell");
+        }];
+        cell.midRightSection = [[MCSwipeSection alloc] initWithView:listView color:brownColor mode:MCSwipeTableViewCellModeSwitch trigger:-0.75f completionBlock:^(MCSwipeTableViewCell *cell, MCSwipeSection *section) {
+            NSLog(@"Did swipe \"List\" cell");
+        }];
     
     return cell;
 }
@@ -106,9 +101,9 @@ MCSwipeTableViewCell has a set of delegate methods in order to track the user be
 In `MCSwipeTableViewCellModeExit` mode you may want to delete the cell with a nice fading animation, the following lines will give you an idea how to execute it:
 
 ```objc
-[cell setSwipeGestureWithView:crossView color:redColor mode:MCSwipeTableViewCellModeExit state:MCSwipeTableViewCellState2 completionBlock:^(MCSwipeTableViewCell *cell, MCSwipeTableViewCellState state, MCSwipeTableViewCellMode mode) {
+cell.farLeftSection = [[MCSwipeSection alloc] initWithView:crossView color:redColor mode:MCSwipeTableViewCellModeSwitch trigger:0.75f completionBlock:^(MCSwipeTableViewCell *cell, MCSwipeSection *section) {
     NSLog(@"Did swipe \"Cross\" cell");
-   
+    
     // Code to delete your cell.
     []
 }];
@@ -120,7 +115,7 @@ You can also ask for a confirmation before deleting a cell:
 
 __strong MCTableViewController *weakSelf = self;
 
-[cell setSwipeGestureWithView:crossView color:redColor mode:MCSwipeTableViewCellModeExit state:MCSwipeTableViewCellState1 completionBlock:^(MCSwipeTableViewCell *cell, MCSwipeTableViewCellState state, MCSwipeTableViewCellMode mode) {
+cell.farLeftSection = [[MCSwipeSection alloc] initWithView:crossView color:redColor mode:MCSwipeTableViewCellModeSwitch trigger:0.75f completionBlock:^(MCSwipeTableViewCell *cell, MCSwipeSection *section) {
     NSLog(@"Did swipe \"Cross\" cell");
             
     __strong MCTableViewController *strongSelf = weakSelf;
@@ -159,14 +154,6 @@ Then handle the `UIAlertView` action:
 
 There is also an example in the demo project, I recommend to take a look at it.
 
-###Changing the trigger percentage
-If the default trigger limits do not fit to your needs you can change them with the `firstTrigger` *(default: 25%)* and `secondTrigger` *(Default: 75%)* properties.
-
-```objc
-cell.firstTrigger = 0.1;
-cell.secondTrigger = 0.5;
-```
-
 ###Reseting cell position
 It is possible to put the cell back to it's position when using the `MCSwipeTableViewCellModeExit` mode with the `-swipeToOriginWithCompletion:` method: 
 
@@ -180,7 +167,7 @@ It is possible to put the cell back to it's position when using the `MCSwipeTabl
 This library is not compatible with auto-layout so you will need to disable auto-layout in your xib properties.
 
 ##Requirements
-- iOS >= 5.0
+- iOS >= 7.0
 - ARC
 
 ## Contact
