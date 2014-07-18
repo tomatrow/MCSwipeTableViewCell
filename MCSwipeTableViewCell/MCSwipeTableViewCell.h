@@ -11,25 +11,6 @@
 @class MCSwipeTableViewCell;
 @class MCSwipeSection;
 
-/** Describes the state that has been triggered by the user. */
-typedef NS_OPTIONS(NSUInteger, MCSwipeTableViewCellState) {
-    
-    /** No state has been triggered. */
-    MCSwipeTableViewCellStateNone = 0,
-    
-    /** 1st state triggered during a Left -> Right swipe. */
-    MCSwipeTableViewCellState1 = (1 << 0),
-    
-    /** 2nd state triggered during a Left -> Right swipe. */
-    MCSwipeTableViewCellState2 = (1 << 1),
-    
-    /** 1st state triggered during a Right -> Left swipe. */
-    MCSwipeTableViewCellState3 = (1 << 2),
-    
-    /** 2nd state triggered during a Right -> Left swipe. */
-    MCSwipeTableViewCellState4 = (1 << 3)
-};
-
 /** Describes the mode used during a swipe */
 typedef NS_ENUM(NSUInteger, MCSwipeTableViewCellMode) {
     /** Disabled swipe.  */
@@ -57,24 +38,13 @@ typedef void (^MCSwipeCompletionBlock)(MCSwipeTableViewCell *cell, MCSwipeSectio
 
 @interface MCSwipeTableViewCell : UITableViewCell
 
-/** Represents the four areas under the main view in order of Far Left, Middle Left, Far Right, Middle Right */
-@property (nonatomic, strong, readonly) NSArray *swipeSections;
-
 /** Delegate of `MCSwipeTableViewCell` */
 @property (nonatomic, assign) id <MCSwipeTableViewCellDelegate> delegate;
 
-/**
- * Damping of the physical spring animation. Expressed in percent.
- *
- * @discussion Only applied for version of iOS > 7.
- */
+/** Damping of the physical spring animation. Expressed in percent. */
 @property (nonatomic, assign, readwrite) CGFloat damping;
 
-/**
- * Velocity of the spring animation. Expressed in points per second (pts/s).
- *
- * @discussion Only applied for version of iOS > 7.
- */
+/** Velocity of the spring animation. Expressed in points per second (pts/s). */
 @property (nonatomic, assign, readwrite) CGFloat velocity;
 
 /** Duration of the animations. */
@@ -82,14 +52,6 @@ typedef void (^MCSwipeCompletionBlock)(MCSwipeTableViewCell *cell, MCSwipeSectio
 
 /** Color for background, when no state has been triggered. */
 @property (nonatomic, strong, readwrite) UIColor *defaultColor;
-
-// Percentage of when the first and second action are activated, respectively
-
-/** Percentage value to trigger the 1st state of a swipe gesture. */
-@property (nonatomic, assign, readwrite) CGFloat firstTrigger;
-
-/** Percentage value to trigger the 2nd state of a swipe gesture. */
-@property (nonatomic, assign, readwrite) CGFloat secondTrigger;
 
 /** Boolean indicator to know if the cell is currently dragged. */
 @property (nonatomic, assign, readonly, getter=isDragging) BOOL dragging;
@@ -100,21 +62,17 @@ typedef void (^MCSwipeCompletionBlock)(MCSwipeTableViewCell *cell, MCSwipeSectio
 /** Boolean to enable/disable the animation of the view during the swipe.  */
 @property (nonatomic, assign, readwrite) BOOL shouldAnimateIcons;
 
-/**
- *  Configures the properties of a cell.
- *
- *  @param view            view of the state triggered during a swipe.
- *  @param color           Color of the state triggered during a swipe.
- *  @param mode            `MCSwipeTableViewCellMode` used by the cell during a swipe.
- *  @param state           `MCSwipeTableViewCellState` on which the properties are applied.
- *  @param completionBlock Block of the state triggered during a swipe.
- */
-- (void)setSectionWithView:(UIView *)view
-                     color:(UIColor *)color
-                      mode:(MCSwipeTableViewCellMode)mode
-                     index:(NSUInteger)idx
-           completionBlock:(MCSwipeCompletionBlock)completionBlock;
+/** Section to the far left. */
+@property (nonatomic, strong, readwrite) MCSwipeSection *farLeftSection;
 
+/** Section to the middle left. */
+@property (nonatomic, strong, readwrite) MCSwipeSection *midLeftSection;
+
+/** Section to the middle right. */
+@property (nonatomic, strong, readwrite) MCSwipeSection *midRightSection;
+
+/** Section to the far right. */
+@property (nonatomic, strong, readwrite) MCSwipeSection *farRightSection;
 
 /**
  *  Swiped back the cell to it's original position
@@ -155,16 +113,47 @@ typedef void (^MCSwipeCompletionBlock)(MCSwipeTableViewCell *cell, MCSwipeSectio
 
 @end
 
+
+
 @interface MCSwipeSection : NSObject
 
+/**
+ * Initializes the bare minimum for an 'MCSwipeSection'
+ * @param trigger The percentage value that triggers the section to action.
+ */
+- (instancetype)initWithTrigger:(CGFloat)trigger;
+
+/**
+ * Initializes a'MCSwipeSection' object fully.
+ * @param view The view displayed in the section.
+ * @param color The background color of the section.
+ * @param mode The swipe mode used to determine if the cell is a switch that stay, a switch that removes itself, or nothing.
+ * @param trigger The percentage value that triggers the section to action.
+ * @param completionBlock A block object to be executed after the section's animation has finished.
+ */
 - (instancetype)initWithView:(UIView *)view
                        color:(UIColor *)color
                         mode:(MCSwipeTableViewCellMode)mode
+                     trigger:(CGFloat)trigger
              completionBlock:(MCSwipeCompletionBlock)completionBlock;
 
+/** View triggered during a swipe */
 @property (nonatomic, strong, readwrite) UIView *view;
+
+/** The color triggered during a swipe. */
 @property (nonatomic, strong, readwrite) UIColor *color;
+
+/** The state triggered during a swipe. */
 @property (nonatomic, assign) MCSwipeTableViewCellMode mode;
+
+/** Block triggered during a swipe. */
 @property (nonatomic, copy) MCSwipeCompletionBlock completionBlock;
 
+/**
+ * Percentage value to trigger section.
+ * @warning 'trigger' must be from -1..1 and fit with the section next to it.
+ */
+@property (nonatomic, assign, readwrite) CGFloat trigger;
+
 @end
+

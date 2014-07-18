@@ -8,8 +8,8 @@
 
 #import "MCSwipeTableViewCell.h"
 
-static CGFloat const kMCStop1                       = 0.25; // Percentage limit to trigger the first action
-static CGFloat const kMCStop2                       = 0.75; // Percentage limit to trigger the second action
+static CGFloat const kMCStop1                       = 0.98; // Percentage limit to trigger the first action
+static CGFloat const kMCStop2                       = 0.99; // Percentage limit to trigger the second action
 static CGFloat const kMCDamping                     = 0.6;  // Damping of the spring animation
 static CGFloat const kMCVelocity                    = 0.9;  // Velocity of the spring animation
 static CGFloat const kMCAnimationDuration           = 0.4;  // Duration of the animation
@@ -22,63 +22,6 @@ typedef NS_ENUM(NSUInteger, MCSwipeTableViewCellDirection) {
     MCSwipeTableViewCellDirectionRight
 };
 
-@implementation MCSwipeSection
-
-- (instancetype)init {
-    return [self initWithView:nil
-                        color:nil
-                         mode:MCSwipeTableViewCellModeNone
-              completionBlock:nil];
-}
-
-- (instancetype)initWithView:(UIView *)view
-                       color:(UIColor *)color
-                        mode:(MCSwipeTableViewCellMode)mode
-             completionBlock:(MCSwipeCompletionBlock)completionBlock {
-    self = [super init];
-    if (self) {
-        _view = view;
-        _color = color;
-        _mode = mode;
-        _completionBlock = completionBlock;
-    }
-    
-    return self;
-}
-
-- (void)setView:(UIView *)view {
-    NSParameterAssert(view);
-    _view = view;
-}
-
-- (void)setColor:(UIColor *)color {
-    NSParameterAssert(color);
-    _color = color;
-}
-
-- (NSString *)description {
-    return [NSString stringWithFormat:@"<%@ %p; view = %@; color = %@; mode = %@; ; completionBlock = %@>",self.class, self, self.view, self.color, @(self.mode), self.completionBlock];
-}
-
-- (NSUInteger)hash {
-    return self.view.hash ^ self.color.hash ^ self.mode;
-}
-
-- (BOOL)isEqual:(id)object {
-    if (![object isKindOfClass:[self class]])
-        return NO;
-    
-    MCSwipeSection *otherSection = object;
-    
-    BOOL sameView = [self.view isEqual:otherSection.view];
-    BOOL sameColor = [self.color isEqual:otherSection.color];
-    BOOL sameMode = self.mode == otherSection.mode;
-    
-    return sameView && sameColor && sameMode; // Same blocks?
-}
-
-@end
-
 
 @interface MCSwipeTableViewCell () <UIGestureRecognizerDelegate>
 
@@ -88,7 +31,7 @@ typedef NS_ENUM(NSUInteger, MCSwipeTableViewCellDirection) {
 @property (nonatomic, assign, readwrite, getter=isDragging) BOOL dragging;
 
 @property (nonatomic, strong) UIPanGestureRecognizer *panGestureRecognizer;
-@property (nonatomic, strong) UIImageView *contentScreenshotView;
+@property (nonatomic, strong) UIView *contentScreenshotView;
 @property (nonatomic, strong) UIView *colorIndicatorView;
 @property (nonatomic, strong) UIView *slidingView;
 @property (nonatomic, strong) MCSwipeSection *activeSection;
@@ -103,7 +46,9 @@ typedef NS_ENUM(NSUInteger, MCSwipeTableViewCellDirection) {
 - (void)setViewOfSlidingView:(UIView *)slidingView;
 
 // Percentage
+- (CGFloat)offsetWithPercentage:(CGFloat)percentage;
 - (CGFloat)offsetWithPercentage:(CGFloat)percentage relativeToWidth:(CGFloat)width;
+- (CGFloat)percentageWithOffset:(CGFloat)offset;
 - (CGFloat)percentageWithOffset:(CGFloat)offset relativeToWidth:(CGFloat)width;
 - (NSTimeInterval)animationDurationWithVelocity:(CGPoint)velocity;
 - (MCSwipeTableViewCellDirection)directionWithPercentage:(CGFloat)percentage;
@@ -111,22 +56,13 @@ typedef NS_ENUM(NSUInteger, MCSwipeTableViewCellDirection) {
 - (CGFloat)alphaWithPercentage:(CGFloat)percentage;
 - (UIColor *)colorWithPercentage:(CGFloat)percentage;
 
-
 // Movement
 - (void)animateWithOffset:(CGFloat)offset;
 - (void)slideViewWithPercentage:(CGFloat)percentage view:(UIView *)view isDragging:(BOOL)isDragging;
 - (void)moveWithDuration:(NSTimeInterval)duration andDirection:(MCSwipeTableViewCellDirection)direction;
 
-// Utilities
-- (UIImage *)imageWithView:(UIView *)view;
-
 // Completion block.
 - (void)executeCompletionBlock;
-
-// Computed Properties
-- (MCSwipeSection *)farLeftSection;
-
-- (MCSwipeSection *)farRightSection;
 
 @end
 
@@ -175,9 +111,6 @@ typedef NS_ENUM(NSUInteger, MCSwipeTableViewCellDirection) {
     _shouldDrag = YES;
     _shouldAnimateIcons = YES;
     
-    _firstTrigger = kMCStop1;
-    _secondTrigger = kMCStop2;
-    
     _damping = kMCDamping;
     _velocity = kMCVelocity;
     _animationDuration = kMCAnimationDuration;
@@ -185,11 +118,11 @@ typedef NS_ENUM(NSUInteger, MCSwipeTableViewCellDirection) {
     _defaultColor = [UIColor whiteColor];
     
     _activeSection = nil;
-    
-    _swipeSections = @[[[MCSwipeSection alloc] init],
-                       [[MCSwipeSection alloc] init],
-                       [[MCSwipeSection alloc] init],
-                       [[MCSwipeSection alloc] init]];
+
+    _farLeftSection = [[MCSwipeSection alloc] initWithTrigger:kMCStop1];
+    _midLeftSection = [[MCSwipeSection alloc] initWithTrigger:kMCStop2];
+    _farRightSection = [[MCSwipeSection alloc] initWithTrigger:-kMCStop1];
+    _midRightSection = [[MCSwipeSection alloc] initWithTrigger:-kMCStop2];
 }
 
 #pragma mark - Prepare reuse
@@ -212,10 +145,8 @@ typedef NS_ENUM(NSUInteger, MCSwipeTableViewCellDirection) {
     BOOL isContentViewBackgroundClear = !self.contentView.backgroundColor;
     if (isContentViewBackgroundClear) {
         BOOL isBackgroundClear = [self.backgroundColor isEqual:[UIColor clearColor]];
-        self.contentView.backgroundColor = isBackgroundClear ? [UIColor whiteColor] :self.backgroundColor;
+        self.contentView.backgroundColor = isBackgroundClear ? [UIColor whiteColor] : self.backgroundColor;
     }
-    
-    UIImage *contentViewScreenshotImage = [self imageWithView:self];
     
     if (isContentViewBackgroundClear) {
         self.contentView.backgroundColor = nil;
@@ -230,7 +161,7 @@ typedef NS_ENUM(NSUInteger, MCSwipeTableViewCellDirection) {
     self.slidingView.contentMode = UIViewContentModeCenter;
     [self.colorIndicatorView addSubview:self.slidingView];
     
-    self.contentScreenshotView = [[UIImageView alloc] initWithImage:contentViewScreenshotImage];
+    self.contentScreenshotView = [self snapshotViewAfterScreenUpdates:NO];
     [self addSubview:self.contentScreenshotView];
 }
 
@@ -262,23 +193,6 @@ typedef NS_ENUM(NSUInteger, MCSwipeTableViewCellDirection) {
     [self.slidingView addSubview:slidingView];
 }
 
-#pragma mark - Section configuration
-
-- (void)setSectionWithView:(UIView *)view
-                     color:(UIColor *)color
-                      mode:(MCSwipeTableViewCellMode)mode
-                     index:(NSUInteger)idx
-           completionBlock:(MCSwipeCompletionBlock)completionBlock {
-    
-    if (idx < self.swipeSections.count) {
-        MCSwipeSection *section = self.swipeSections[idx];
-        section.completionBlock = completionBlock;
-        section.view = view;
-        section.color = color;
-        section.mode = mode;
-    }
-}
-
 #pragma mark - Handle Gestures
 
 - (void)handlePanGestureRecognizer:(UIPanGestureRecognizer *)gesture {
@@ -290,10 +204,10 @@ typedef NS_ENUM(NSUInteger, MCSwipeTableViewCellDirection) {
     UIGestureRecognizerState state      = [gesture state];
     CGPoint translation                 = [gesture translationInView:self];
     CGPoint velocity                    = [gesture velocityInView:self];
-    CGFloat percentage                  = [self percentageWithOffset:CGRectGetMinX(self.contentScreenshotView.frame) relativeToWidth:CGRectGetWidth(self.bounds)];
+    CGFloat percentage                  = [self percentageWithOffset:CGRectGetMinX(self.contentScreenshotView.frame)];
     NSTimeInterval animationDuration    = [self animationDurationWithVelocity:velocity];
     self.direction                      = [self directionWithPercentage:percentage];
-    
+
     if (state == UIGestureRecognizerStateBegan || state == UIGestureRecognizerStateChanged) {
         self.dragging = YES;
         
@@ -339,12 +253,12 @@ typedef NS_ENUM(NSUInteger, MCSwipeTableViewCellDirection) {
         UIPanGestureRecognizer *panGestureRecognizer = (UIPanGestureRecognizer *)gestureRecognizer;
         CGPoint point = [panGestureRecognizer velocityInView:self];
         
-        if (fabsf(point.x) > fabsf(point.y) ) {
-            if (point.x < 0 && ![self.swipeSections[2] mode] && ![self.swipeSections[3] mode]) {
+        if (fabsf(point.x) > fabsf(point.y) ) { // horizontal gesture
+            if (point.x < 0 && !self.farRightSection.mode && !self.midRightSection.mode) {
                 return NO;
             }
             
-            if (point.x > 0 && ![self.swipeSections[0] mode] && ![self.swipeSections[1] mode]) {
+            if (point.x > 0 && !self.farLeftSection.mode && !self.midLeftSection.mode) {
                 return NO;
             }
             
@@ -361,6 +275,9 @@ typedef NS_ENUM(NSUInteger, MCSwipeTableViewCellDirection) {
 }
 
 #pragma mark - Percentage
+- (CGFloat)offsetWithPercentage:(CGFloat)percentage {
+    return [self offsetWithPercentage:percentage relativeToWidth:CGRectGetWidth(self.bounds)];
+}
 
 - (CGFloat)offsetWithPercentage:(CGFloat)percentage relativeToWidth:(CGFloat)width {
     CGFloat offset = percentage * width;
@@ -371,6 +288,10 @@ typedef NS_ENUM(NSUInteger, MCSwipeTableViewCellDirection) {
         offset = width;
     
     return offset;
+}
+
+- (CGFloat)percentageWithOffset:(CGFloat)offset {
+    return [self percentageWithOffset:offset relativeToWidth:CGRectGetWidth(self.bounds)];
 }
 
 - (CGFloat)percentageWithOffset:(CGFloat)offset relativeToWidth:(CGFloat)width {
@@ -411,27 +332,27 @@ typedef NS_ENUM(NSUInteger, MCSwipeTableViewCellDirection) {
     MCSwipeSection *section = [self sectionWithPercentage:percentage];
     
     if (!section) {
-        section = (percentage > 0) ? [self farLeftSection] : [self farRightSection];
+        section = (percentage > 0) ? self.farLeftSection : self.farRightSection;
     }
     
     return section.view;
 }
 
 - (MCSwipeSection *)sectionWithPercentage:(CGFloat)percentage {
-    __block MCSwipeSection *section = nil;
+    MCSwipeSection *section = nil;
     
-    NSArray *conditions = @[@(percentage >= self.firstTrigger),
-                            @(percentage >= self.secondTrigger),
-                            @(percentage <= -self.firstTrigger),
-                            @(percentage <= -self.secondTrigger)];
-    
-    [self.swipeSections enumerateObjectsUsingBlock:^(id obj, NSUInteger idx, BOOL *stop) {
-        MCSwipeSection *enumerationSection = obj;
-        BOOL condition = [conditions[idx] boolValue];
-        if (condition && enumerationSection.mode) {
-            section = enumerationSection;
-        }
-    }];
+    if (percentage >= self.farLeftSection.trigger && self.farLeftSection.mode) {
+        section = self.farLeftSection;
+    }
+    if (percentage >= self.midLeftSection.trigger && self.midLeftSection.mode) {
+        section = self.midLeftSection;
+    }
+    if (percentage <= self.farRightSection.trigger && self.farRightSection.mode) {
+        section = self.farRightSection;
+    }
+    if (percentage <= self.midRightSection.trigger && self.midRightSection.mode) {
+        section = self.midRightSection;
+    }
     
     return section;
 }
@@ -439,10 +360,10 @@ typedef NS_ENUM(NSUInteger, MCSwipeTableViewCellDirection) {
 - (CGFloat)alphaWithPercentage:(CGFloat)percentage {
     CGFloat alpha;
     
-    if (percentage >= 0 && percentage < self.firstTrigger) {
-        alpha = percentage / self.firstTrigger;
-    } else if (percentage < 0 && percentage > -self.firstTrigger) {
-        alpha = fabsf(percentage / self.firstTrigger);
+    if (percentage >= 0 && percentage < self.farLeftSection.trigger) {
+        alpha = percentage / self.farLeftSection.trigger;
+    } else if (percentage < 0 && percentage > self.farRightSection.trigger) {
+        alpha = fabsf(percentage / self.farRightSection.trigger);
     } else {
         alpha = 1.0f;
     }
@@ -464,7 +385,7 @@ typedef NS_ENUM(NSUInteger, MCSwipeTableViewCellDirection) {
 #pragma mark - Movement
 
 - (void)animateWithOffset:(CGFloat)offset {
-    CGFloat percentage = [self percentageWithOffset:offset relativeToWidth:CGRectGetWidth(self.bounds)];
+    CGFloat percentage = [self percentageWithOffset:offset];
     
     UIView *view = [self viewWithPercentage:percentage];
     
@@ -491,21 +412,25 @@ typedef NS_ENUM(NSUInteger, MCSwipeTableViewCellDirection) {
     CGPoint position = CGPointZero;
     position.y = CGRectGetHeight(self.bounds) / 2.0;
     
+    CGFloat halfFirstTriggerPercentage = (self.farLeftSection.trigger / 2);
+    CGFloat halfThirdTriggerPercentage = fabsf((self.farRightSection.trigger/ 2));
+    CGFloat boundsWidth = CGRectGetWidth(self.bounds);
+    
     if (isDragging) {
-        if (percentage >= 0 && percentage < self.firstTrigger) {
-            position.x = [self offsetWithPercentage:(self.firstTrigger / 2) relativeToWidth:CGRectGetWidth(self.bounds)];
-        } else if (percentage >= self.firstTrigger) {
-            position.x = [self offsetWithPercentage:percentage - (self.firstTrigger / 2) relativeToWidth:CGRectGetWidth(self.bounds)];
-        } else if (percentage < 0 && percentage >= -self.firstTrigger) {
-            position.x = CGRectGetWidth(self.bounds) - [self offsetWithPercentage:(self.firstTrigger / 2) relativeToWidth:CGRectGetWidth(self.bounds)];
-        } else if (percentage < -self.firstTrigger) {
-            position.x = CGRectGetWidth(self.bounds) + [self offsetWithPercentage:percentage + (self.firstTrigger / 2) relativeToWidth:CGRectGetWidth(self.bounds)];
+        if (percentage >= 0 && percentage < self.farLeftSection.trigger) {// Section 01
+            position.x = [self offsetWithPercentage:halfFirstTriggerPercentage];
+        } else if (percentage >= self.farLeftSection.trigger) {// Section 02
+            position.x = [self offsetWithPercentage:percentage - halfFirstTriggerPercentage];
+        } else if (percentage < 0 && percentage >= self.farRightSection.trigger) { // Section 03
+            position.x = boundsWidth - [self offsetWithPercentage:halfThirdTriggerPercentage];
+        } else if (percentage < self.farRightSection.trigger) {// Section 04
+            position.x = boundsWidth + [self offsetWithPercentage:percentage + halfThirdTriggerPercentage];
         }
     } else {
         if (self.direction == MCSwipeTableViewCellDirectionRight) {
-            position.x = [self offsetWithPercentage:(self.firstTrigger / 2) relativeToWidth:CGRectGetWidth(self.bounds)];
+            position.x = [self offsetWithPercentage:halfFirstTriggerPercentage];
         } else if (self.direction == MCSwipeTableViewCellDirectionLeft) {
-            position.x = CGRectGetWidth(self.bounds) - [self offsetWithPercentage:(self.firstTrigger / 2) relativeToWidth:CGRectGetWidth(self.bounds)];
+            position.x = boundsWidth - [self offsetWithPercentage:halfThirdTriggerPercentage];
         } else {
             return;
         }
@@ -534,7 +459,7 @@ typedef NS_ENUM(NSUInteger, MCSwipeTableViewCellDirection) {
         origin = 0;
     }
     
-    CGFloat percentage = [self percentageWithOffset:origin relativeToWidth:CGRectGetWidth(self.bounds)];
+    CGFloat percentage = [self percentageWithOffset:origin];
     CGRect frame = self.contentScreenshotView.frame;
     frame.origin.x = origin;
     
@@ -577,18 +502,6 @@ typedef NS_ENUM(NSUInteger, MCSwipeTableViewCellDirection) {
     }];
 }
 
-#pragma mark - Utilities
-
-- (UIImage *)imageWithView:(UIView *)view {
-    CGFloat scale = [[UIScreen mainScreen] scale];
-    UIGraphicsBeginImageContextWithOptions(view.bounds.size, NO, scale);
-    [view.layer renderInContext:UIGraphicsGetCurrentContext()];
-    UIImage * image = UIGraphicsGetImageFromCurrentImageContext();
-    UIGraphicsEndImageContext();
-    return image;
-}
-
-
 #pragma mark - Completion block
 
 - (void)executeCompletionBlock {
@@ -599,14 +512,106 @@ typedef NS_ENUM(NSUInteger, MCSwipeTableViewCellDirection) {
     }
 }
 
-#pragma mark - Computed Properties
 
-- (MCSwipeSection *)farLeftSection {
-    return self.swipeSections[0];
+#pragma mark - Sections
+
+- (NSArray *)swipeSections {
+    return  @[self.farLeftSection, self.midLeftSection, self.farRightSection, self.midRightSection];
 }
 
-- (MCSwipeSection *)farRightSection {
-    return self.swipeSections[2];
+- (void)setFarLeftSection:(MCSwipeSection *)farLeftSection {
+    NSParameterAssert(farLeftSection);
+    NSAssert(farLeftSection.trigger > 0.0f && farLeftSection.trigger < self.midLeftSection.trigger, @"Impropper trigger for farLeft with a midLeft of %f", farLeftSection.trigger, self.midLeftSection.trigger);
+    _farLeftSection = farLeftSection;
+}
+
+- (void)setMidLeftSection:(MCSwipeSection *)midLeftSection {
+    NSParameterAssert(midLeftSection);
+    NSAssert(self.farLeftSection.trigger < midLeftSection.trigger && midLeftSection.trigger < 1.0f, @"Impropper trigger for midLeft %f with a farLeft of %f", midLeftSection.trigger, self.farLeftSection.trigger);
+    _midLeftSection = midLeftSection;
+}
+
+- (void)setFarRightSection:(MCSwipeSection *)farRightSection {
+    NSParameterAssert(farRightSection);
+    NSAssert(self.midRightSection.trigger < farRightSection.trigger && farRightSection.trigger < 0.0f, @"Impropper trigger for farRight %f with a midRight of %f", farRightSection.trigger, self.midRightSection.trigger);
+    _farRightSection = farRightSection;
+}
+
+- (void)setMidRightSection:(MCSwipeSection *)midRightSection {
+    NSParameterAssert(midRightSection);
+    NSAssert(midRightSection.trigger > -1.0f && midRightSection.trigger < self.farRightSection.trigger,@"Impropper trigger for midRight %f with farRight of %f", midRightSection.trigger, self.farRightSection.trigger);
+    _midRightSection = midRightSection;
+}
+
+@end
+
+
+@implementation MCSwipeSection
+
+- (instancetype)init {
+    return nil;
+}
+
+- (instancetype)initWithTrigger:(CGFloat)trigger {
+    return [self initWithView:nil
+                        color:nil
+                         mode:MCSwipeTableViewCellModeNone
+                      trigger:trigger
+              completionBlock:nil];
+}
+
+- (instancetype)initWithView:(UIView *)view
+                       color:(UIColor *)color
+                        mode:(MCSwipeTableViewCellMode)mode
+                     trigger:(CGFloat)trigger
+             completionBlock:(MCSwipeCompletionBlock)completionBlock {
+    self = [super init];
+    if (self) {
+        _view = view;
+        _color = color;
+        _mode = mode;
+        _completionBlock = completionBlock;
+        NSAssert(trigger > -1.0f && trigger < 1.0f, @"Trigger is outside range.");
+        _trigger = trigger;
+    }
+    
+    return self;
+}
+
+- (void)setView:(UIView *)view {
+    NSParameterAssert(view);
+    _view = view;
+}
+
+- (void)setColor:(UIColor *)color {
+    NSParameterAssert(color);
+    _color = color;
+}
+
+- (void)setTrigger:(CGFloat)trigger {
+    NSAssert(trigger > -1.0f && trigger < 1.0f, @"Trigger is outside range.");
+    _trigger = trigger;
+}
+
+- (NSString *)description {
+    return [NSString stringWithFormat:@"<%@ %p; view = %@; color = %@; mode = %@; trigger = %@; completionBlock = %@>",self.class, self, self.view, self.color, @(self.mode), @(self.trigger),self.completionBlock];
+}
+
+- (NSUInteger)hash {
+    return self.view.hash ^ self.color.hash ^ self.mode;
+}
+
+- (BOOL)isEqual:(id)object {
+    if (![object isKindOfClass:[self class]])
+        return NO;
+    
+    MCSwipeSection *otherSection = object;
+    
+    BOOL sameView = [self.view isEqual:otherSection.view];
+    BOOL sameColor = [self.color isEqual:otherSection.color];
+    BOOL sameMode = self.mode == otherSection.mode;
+    
+    return sameView && sameColor && sameMode; // Same blocks?
 }
 
 @end

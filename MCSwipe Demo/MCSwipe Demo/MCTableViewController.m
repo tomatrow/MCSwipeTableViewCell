@@ -101,33 +101,49 @@ static NSUInteger const kMCNumItems = 7;
     if (indexPath.row % kMCNumItems == 0) {
         [cell.textLabel setText:@"Switch Mode Cell"];
         [cell.detailTextLabel setText:@"Swipe to switch"];
-        
-        [cell setSwipeGestureWithView:checkView color:greenColor mode:MCSwipeTableViewCellModeSwitch state:MCSwipeTableViewCellState1 completionBlock:^(MCSwipeTableViewCell *cell, MCSwipeTableViewCellState state, MCSwipeTableViewCellMode mode) {
-            NSLog(@"Did swipe \"Checkmark\" cell");
-        }];
-        
-        [cell setSwipeGestureWithView:crossView color:redColor mode:MCSwipeTableViewCellModeSwitch state:MCSwipeTableViewCellState2 completionBlock:^(MCSwipeTableViewCell *cell, MCSwipeTableViewCellState state, MCSwipeTableViewCellMode mode) {
-            NSLog(@"Did swipe \"Cross\" cell");
-        }];
-        
-        [cell setSwipeGestureWithView:clockView color:yellowColor mode:MCSwipeTableViewCellModeSwitch state:MCSwipeTableViewCellState3 completionBlock:^(MCSwipeTableViewCell *cell, MCSwipeTableViewCellState state, MCSwipeTableViewCellMode mode) {
-            NSLog(@"Did swipe \"Clock\" cell");
-        }];
-        
-        [cell setSwipeGestureWithView:listView color:brownColor mode:MCSwipeTableViewCellModeSwitch state:MCSwipeTableViewCellState4 completionBlock:^(MCSwipeTableViewCell *cell, MCSwipeTableViewCellState state, MCSwipeTableViewCellMode mode) {
-            NSLog(@"Did swipe \"List\" cell");
-        }];
+
+        cell.farLeftSection = [[MCSwipeSection alloc] initWithView:checkView
+                                                             color:greenColor
+                                                              mode:MCSwipeTableViewCellModeSwitch
+                                                           trigger:0.25f
+                                                   completionBlock:^(MCSwipeTableViewCell *cell, MCSwipeSection *section) {
+                                                       NSLog(@"Did swipe \"Checkmark\" cell");
+                                                   }];
+        cell.midLeftSection = [[MCSwipeSection alloc] initWithView:crossView
+                                                             color:redColor
+                                                              mode:MCSwipeTableViewCellModeSwitch
+                                                           trigger:0.75f
+                                                   completionBlock:^(MCSwipeTableViewCell *cell, MCSwipeSection *section) {
+                                                       NSLog(@"Did swipe \"Cross\" cell");
+                                                   }];
+        cell.farRightSection = [[MCSwipeSection alloc] initWithView:clockView
+                                                              color:yellowColor
+                                                               mode:MCSwipeTableViewCellModeSwitch
+                                                            trigger:-0.25f
+                                                    completionBlock:^(MCSwipeTableViewCell *cell, MCSwipeSection *section) {
+                                                        NSLog(@"Did swipe \"Clock\" cell");
+                                                    }];
+        cell.midRightSection = [[MCSwipeSection alloc] initWithView:listView
+                                                              color:brownColor
+                                                               mode:MCSwipeTableViewCellModeSwitch
+                                                            trigger:-0.75f
+                                                    completionBlock:^(MCSwipeTableViewCell *cell, MCSwipeSection *section) {
+                                                        NSLog(@"Did swipe \"List\" cell");
+                                                    }];
     }
     
     else if (indexPath.row % kMCNumItems == 1) {
         [cell.textLabel setText:@"Exit Mode Cell"];
         [cell.detailTextLabel setText:@"Swipe to delete"];
         
-        [cell setSwipeGestureWithView:crossView color:redColor mode:MCSwipeTableViewCellModeExit state:MCSwipeTableViewCellState1 completionBlock:^(MCSwipeTableViewCell *cell, MCSwipeTableViewCellState state, MCSwipeTableViewCellMode mode) {
-            NSLog(@"Did swipe \"Cross\" cell");
-            
-            [self deleteCell:cell];
-        }];
+        cell.farLeftSection = [[MCSwipeSection alloc] initWithView:crossView
+                                                             color:redColor
+                                                              mode:MCSwipeTableViewCellModeExit
+                                                           trigger:0.25f
+                                                   completionBlock:^(MCSwipeTableViewCell * cell, MCSwipeSection *section){
+                                                       NSLog(@"Did swipe \"Cross\" cell");
+                                                       [self deleteCell:cell];
+                                                   }];
     }
     
     else if (indexPath.row % kMCNumItems == 2) {
@@ -135,15 +151,21 @@ static NSUInteger const kMCNumItems = 7;
         [cell.detailTextLabel setText:@"Swipe to switch or delete"];
         cell.shouldAnimateIcons = YES;
         
-        [cell setSwipeGestureWithView:checkView color:greenColor mode:MCSwipeTableViewCellModeSwitch state:MCSwipeTableViewCellState1 completionBlock:^(MCSwipeTableViewCell *cell, MCSwipeTableViewCellState state, MCSwipeTableViewCellMode mode) {
-            NSLog(@"Did swipe \"Checkmark\" cell");
-        }];
-        
-        [cell setSwipeGestureWithView:crossView color:redColor mode:MCSwipeTableViewCellModeExit state:MCSwipeTableViewCellState2 completionBlock:^(MCSwipeTableViewCell *cell, MCSwipeTableViewCellState state, MCSwipeTableViewCellMode mode) {
-            NSLog(@"Did swipe \"Cross\" cell");
-            
-            [self deleteCell:cell];
-        }];
+        cell.farLeftSection = [[MCSwipeSection alloc] initWithView:checkView
+                                                             color:greenColor
+                                                              mode:MCSwipeTableViewCellModeSwitch
+                                                           trigger:0.25f
+                                                   completionBlock:^(MCSwipeTableViewCell *cell, MCSwipeSection *section) {
+                                                       NSLog(@"Did swipe \"Checkmark\" cell");
+                                                   }];
+        cell.midLeftSection = [[MCSwipeSection alloc] initWithView:crossView
+                                                             color:redColor
+                                                              mode:MCSwipeTableViewCellModeExit
+                                                           trigger:0.75f
+                                                   completionBlock:^(MCSwipeTableViewCell * cell, MCSwipeSection *section){
+                                                       NSLog(@"Did swipe \"Cross\" cell");
+                                                       [self deleteCell:cell];
+                                                   }];
     }
     
     else if (indexPath.row % kMCNumItems == 3) {
@@ -151,64 +173,86 @@ static NSUInteger const kMCNumItems = 7;
         [cell.detailTextLabel setText:@"Swipe"];
         cell.shouldAnimateIcons = NO;
         
-        [cell setSwipeGestureWithView:checkView color:greenColor mode:MCSwipeTableViewCellModeSwitch state:MCSwipeTableViewCellState1 completionBlock:^(MCSwipeTableViewCell *cell, MCSwipeTableViewCellState state, MCSwipeTableViewCellMode mode) {
-            NSLog(@"Did swipe \"Checkmark\" cell");
-        }];
-        
-        [cell setSwipeGestureWithView:crossView color:redColor mode:MCSwipeTableViewCellModeExit state:MCSwipeTableViewCellState2 completionBlock:^(MCSwipeTableViewCell *cell, MCSwipeTableViewCellState state, MCSwipeTableViewCellMode mode) {
-            NSLog(@"Did swipe \"Cross\" cell");
-            
-            [self deleteCell:cell];
-        }];
+        cell.farLeftSection = [[MCSwipeSection alloc] initWithView:checkView
+                                                             color:greenColor
+                                                              mode:MCSwipeTableViewCellModeSwitch
+                                                           trigger:0.25f
+                                                   completionBlock:^(MCSwipeTableViewCell *cell, MCSwipeSection *section) {
+                                                       NSLog(@"Did swipe \"Checkmark\" cell");
+                                                   }];
+        cell.midLeftSection = [[MCSwipeSection alloc] initWithView:crossView
+                                                             color:redColor
+                                                              mode:MCSwipeTableViewCellModeExit
+                                                           trigger:0.75f
+                                                   completionBlock:^(MCSwipeTableViewCell * cell, MCSwipeSection *section){
+                                                       NSLog(@"Did swipe \"Cross\" cell");
+                                                       [self deleteCell:cell];
+                                                   }];
     }
     
     else if (indexPath.row % kMCNumItems == 4) {
         [cell.textLabel setText:@"Right swipe only"];
         [cell.detailTextLabel setText:@"Swipe"];
         
-        [cell setSwipeGestureWithView:clockView color:yellowColor mode:MCSwipeTableViewCellModeSwitch state:MCSwipeTableViewCellState3 completionBlock:^(MCSwipeTableViewCell *cell, MCSwipeTableViewCellState state, MCSwipeTableViewCellMode mode) {
-            NSLog(@"Did swipe \"Clock\" cell");
-        }];
-        
-        [cell setSwipeGestureWithView:listView color:brownColor mode:MCSwipeTableViewCellModeSwitch state:MCSwipeTableViewCellState4 completionBlock:^(MCSwipeTableViewCell *cell, MCSwipeTableViewCellState state, MCSwipeTableViewCellMode mode) {
-            NSLog(@"Did swipe \"List\" cell");
-        }];
+        cell.farRightSection = [[MCSwipeSection alloc] initWithView:clockView
+                                                              color:yellowColor
+                                                               mode:MCSwipeTableViewCellModeSwitch
+                                                            trigger:-0.25f
+                                                    completionBlock:^(MCSwipeTableViewCell *cell, MCSwipeSection *section) {
+                                                        NSLog(@"Did swipe \"Clock\" cell");
+                                                    }];
+        cell.midRightSection = [[MCSwipeSection alloc] initWithView:listView
+                                                              color:brownColor
+                                                               mode:MCSwipeTableViewCellModeSwitch
+                                                            trigger:-0.75f
+                                                    completionBlock:^(MCSwipeTableViewCell *cell, MCSwipeSection *section) {
+                                                        NSLog(@"Did swipe \"List\" cell");
+                                                    }];
     }
     
     else if (indexPath.row % kMCNumItems == 5) {
         [cell.textLabel setText:@"Small triggers"];
         [cell.detailTextLabel setText:@"Using 10% and 50%"];
-        cell.firstTrigger = 0.1;
-        cell.secondTrigger = 0.5;
-        
-        [cell setSwipeGestureWithView:checkView color:greenColor mode:MCSwipeTableViewCellModeSwitch state:MCSwipeTableViewCellState1 completionBlock:^(MCSwipeTableViewCell *cell, MCSwipeTableViewCellState state, MCSwipeTableViewCellMode mode) {
-            NSLog(@"Did swipe \"Checkmark\" cell");
-        }];
-        
-        [cell setSwipeGestureWithView:crossView color:redColor mode:MCSwipeTableViewCellModeExit state:MCSwipeTableViewCellState2 completionBlock:^(MCSwipeTableViewCell *cell, MCSwipeTableViewCellState state, MCSwipeTableViewCellMode mode) {
-            NSLog(@"Did swipe \"Cross\" cell");
-            
-            [self deleteCell:cell];
-        }];
+
+        cell.farLeftSection = [[MCSwipeSection alloc] initWithView:checkView
+                                                             color:greenColor
+                                                              mode:MCSwipeTableViewCellModeSwitch
+                                                           trigger:0.1f
+                                                   completionBlock:^(MCSwipeTableViewCell *cell, MCSwipeSection *section) {
+                                                       NSLog(@"Did swipe \"Checkmark\" cell");
+                                                   }];
+        cell.midLeftSection = [[MCSwipeSection alloc] initWithView:crossView
+                                                             color:redColor
+                                                              mode:MCSwipeTableViewCellModeExit
+                                                           trigger:0.5f
+                                                   completionBlock:^(MCSwipeTableViewCell * cell, MCSwipeSection *section){
+                                                       NSLog(@"Did swipe \"Cross\" cell");
+                                                       [self deleteCell:cell];
+                                                   }];
     }
     
     else if (indexPath.row % kMCNumItems == 6) {
         [cell.textLabel setText:@"Exit Mode Cell + Confirmation"];
         [cell.detailTextLabel setText:@"Swipe to delete"];
-        
-        [cell setSwipeGestureWithView:crossView color:redColor mode:MCSwipeTableViewCellModeExit state:MCSwipeTableViewCellState1 completionBlock:^(MCSwipeTableViewCell *cell, MCSwipeTableViewCellState state, MCSwipeTableViewCellMode mode) {
-            NSLog(@"Did swipe \"Cross\" cell");
-            
-            _cellToDelete = cell;
-            
-            UIAlertView *alertView = [[UIAlertView alloc] initWithTitle:@"Delete?"
-                                                                message:@"Are you sure your want to delete the cell?"
-                                                               delegate:self
-                                                      cancelButtonTitle:@"No"
-                                                      otherButtonTitles:@"Yes", nil];
-            [alertView show];
-        }];
+
+        cell.farLeftSection = [[MCSwipeSection alloc] initWithView:crossView
+                                                             color:redColor
+                                                              mode:MCSwipeTableViewCellModeExit
+                                                           trigger:0.25f
+                                                   completionBlock:^(MCSwipeTableViewCell *cell, MCSwipeSection *section) {
+                                                       NSLog(@"Did swipe \"Cross\" cell");
+                                                       
+                                                       _cellToDelete = cell;
+                                                       
+                                                       UIAlertView *alertView = [[UIAlertView alloc] initWithTitle:@"Delete?"
+                                                                                                           message:@"Are you sure your want to delete the cell?"
+                                                                                                          delegate:self
+                                                                                                 cancelButtonTitle:@"No"
+                                                                                                 otherButtonTitles:@"Yes", nil];
+                                                       [alertView show];
+                                                   }];
     }
+    
 }
 
 - (CGFloat)tableView:(UITableView *)tableView heightForRowAtIndexPath:(NSIndexPath *)indexPath {
